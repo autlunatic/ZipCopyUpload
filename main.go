@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 
@@ -27,8 +28,8 @@ func main() {
 	}
 	crw := encryptedConfig.ConfigReadWriter{&conf, file, "thisIsTheEllizBatPW"}
 	readConfErr := crw.DoRead()
-	if !canContinueError(readConfErr) {
-		return
+	if readConfErr != nil {
+		log.Fatal("config error, script aborted! ", err)
 	}
 	file.Close()
 	// first zip all files ---------------------------------------------------
@@ -55,13 +56,17 @@ type ftpConfig struct {
 	Password   string `encrypted:"true"`
 	RemotePath string
 }
+type FromSliceTo struct {
+	FromFileNames []string
+	ToFileName    string
+}
 
 type FileUploadConf struct {
 	FileName  string
 	FTPConfig ftpConfig
 }
 type ZipCopyUpload struct {
-	ZipFiles    []FromTo
+	ZipFiles    []FromSliceTo
 	CopyToDirs  []FromTo
 	UploadFiles []FileUploadConf
 }
@@ -131,15 +136,12 @@ func copyFile(fromFile string, toFile string) error {
 	return nil
 }
 
-func canContinueError(err error) bool {
-	if err != nil {
-		color.Red(fmt.Sprint("ERROR! > ", err))
-		fmt.Print("Continue? (y/n):")
-		var input string
-		fmt.Scanln(&input)
-		if input != "y" {
-			return false
-		}
+func canContinue() bool {
+	fmt.Print("Continue? (y/n):")
+	var input string
+	fmt.Scanln(&input)
+	if input != "y" {
+		return false
 	}
 	return true
 }
@@ -147,22 +149,22 @@ func canContinueError(err error) bool {
 func handleZipping(conf ZipCopyUpload) bool {
 	var okCnt int
 	for _, z := range conf.ZipFiles {
-		fmt.Println("zipping...", z.FromFileName, " > ", z.ToFileName)
+		fmt.Println("zipping...", z.FromFileNames, " > ", z.ToFileName)
 		checkMkDir(z.ToFileName)
-		files := []string{z.FromFileName}
-		err := Zipping.ZipFiles(z.ToFileName, files)
-		if !canContinueError(err) {
-			return false
-		}
-		fmt.Println("error?:", err)
-		if err == nil {
+		err := Zipping.ZipFiles(z.ToFileName, z.FromFileNames)
+		if err != nil {
+			color.Red(fmt.Sprint("ERROR! > ", err))
+		} else {
 			okCnt++
 		}
 	}
 	if len(conf.ZipFiles) == okCnt {
-		color.Green("%d file zipped...", okCnt)
+		color.Green("%d zipfiles created...", okCnt)
 	} else {
-		color.Red("%d from %d file zipped...", okCnt, len(conf.ZipFiles))
+		color.Red("%d from %d zipfiles created...", okCnt, len(conf.ZipFiles))
+		if !canContinue() {
+			return false
+		}
 	}
 	return true
 }
@@ -172,10 +174,9 @@ func handleCopy(conf ZipCopyUpload) bool {
 	for _, c := range conf.CopyToDirs {
 		fmt.Println("copying...", c.FromFileName, " > ", c.ToFileName)
 		err := copyFile(c.FromFileName, c.ToFileName)
-		if !canContinueError(err) {
-			return false
-		}
-		if err == nil {
+		if err != nil {
+			color.Red(fmt.Sprint("ERROR! > ", err))
+		} else {
 			okCnt++
 		}
 	}
@@ -183,6 +184,9 @@ func handleCopy(conf ZipCopyUpload) bool {
 		color.Green("%d file copied...", okCnt)
 	} else {
 		color.Red("%d from %d file copied...", okCnt, len(conf.CopyToDirs))
+		if !canContinue() {
+			return false
+		}
 	}
 	return true
 }
