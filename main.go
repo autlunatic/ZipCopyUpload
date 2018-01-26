@@ -6,13 +6,13 @@ import (
 	"io"
 	"os"
 
-	"github.com/autlunatic/MySqlBackup/ftp"
+	"github.com/autlunatic/goUtil/ftp"
 
-	"github.com/autlunatic/Zipping"
 	"github.com/autlunatic/goConfig"
+	"github.com/autlunatic/goUtil/Zipping"
 )
 
-const confFile = "EllizUpload.conf"
+const confFile = "ZipCopyUpload.conf"
 
 type FromTo struct {
 	FromFileName string
@@ -29,9 +29,9 @@ type FileUploadConf struct {
 	FileName  string
 	FTPConfig ftpConfig
 }
-type EllizConfig struct {
-	CopyToDirs  []FromTo
+type ZipCopyUpload struct {
 	ZipFiles    []FromTo
+	CopyToDirs  []FromTo
 	UploadFiles []FileUploadConf
 }
 
@@ -56,7 +56,7 @@ func copyFile(fromFile string, toFile string) error {
 }
 func main() {
 	// load Configfile
-	var conf EllizConfig
+	var conf ZipCopyUpload
 	file, err := os.OpenFile(confFile, os.O_RDWR, 0666)
 	defer file.Close()
 	if err != nil {
