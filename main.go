@@ -72,6 +72,9 @@ type ZipCopyUpload struct {
 }
 
 func handleUploadFiles(conf ZipCopyUpload) {
+	if len(conf.UploadFiles) == 0 {
+		return
+	}
 	ec := make(chan error)
 	var goroutines int
 	for _, c := range conf.UploadFiles {
