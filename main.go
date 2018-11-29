@@ -26,7 +26,7 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	crw := encryptedConfig.ConfigReadWriter{&conf, file, "thisIsTheEllizBatPW"}
+	crw := goConfig.ConfigReadWriter{&conf, file, "thisIsTheEllizBatPW"}
 	readConfErr := crw.DoRead()
 	if readConfErr != nil {
 		log.Fatal("config error, script aborted! ", err)
